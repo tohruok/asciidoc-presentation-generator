@@ -1,0 +1,43 @@
+extends: default
+page:
+  layout: landscape
+  margin: [0.5in, 0.75in, 0.5in, 0.75in]
+  size: A4
+font:
+  catalog:
+    merge: true
+    HiraginoKakuGothic:
+      normal: "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
+      bold: "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc"
+      italic: "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
+      bold_italic: "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc"
+    HiraginoMincho:
+      normal: "/System/Library/Fonts/ヒラギノ明朝 ProN.ttc"
+      bold: "/System/Library/Fonts/ヒラギノ明朝 ProN.ttc"
+      italic: "/System/Library/Fonts/ヒラギノ明朝 ProN.ttc"
+      bold_italic: "/System/Library/Fonts/ヒラギノ明朝 ProN.ttc"
+  fallbacks:
+    - HiraginoKakuGothic
+base:
+  font-family: HiraginoKakuGothic
+  font-size: 10
+  line-height: 1.6
+heading:
+  font-family: HiraginoKakuGothic
+  font-style: bold
+  font-size: 18
+  line-height: 1.2
+  margin-bottom: 12
+  h2:
+    break-before: page
+title-page:
+  font-family: HiraginoKakuGothic
+  font-size: 24
+  font-style: bold
+  text-align: center
+code:
+  font-family: Courier
+  font-size: 9
+table:
+  font-family: HiraginoKakuGothic
+  font-size: 9
