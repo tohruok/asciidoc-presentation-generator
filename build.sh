@@ -17,6 +17,7 @@ fi
 
 # Generate Reveal.js slides from AsciiDoc
 echo "Generating Reveal.js slides from sample.adoc..."
+cp -p themes/*.css output
 asciidoctor -r asciidoctor-revealjs -r asciidoctor-diagram -b revealjs -a allow-uri-read sample.adoc -o output/slides.html
 
 if [ $? -eq 0 ]; then
@@ -37,19 +38,9 @@ else
     echo "⚠️  PDF handout generation failed"
 fi
 
-# Generate standard HTML as well
-echo "Generating standard HTML from sample.adoc..."
-asciidoctor -r asciidoctor-diagram -a allow-uri-read sample.adoc -o output/document.html
-
-if [ $? -eq 0 ]; then
-    echo "✅ HTML document generated successfully: output/document.html"
-else
-    echo "⚠️  HTML document generation failed"
-fi
 
 echo "Build complete!"
 echo ""
 echo "Generated files:"
 echo "  📊 output/slides.html    - Reveal.js presentation (open in browser)"
 echo "  📄 output/handout.pdf    - PDF handout"
-echo "  📝 output/document.html  - Standard HTML document"
