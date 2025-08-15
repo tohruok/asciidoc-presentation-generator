@@ -15,6 +15,19 @@
 :pdf-themesdir: themes
 :chapter-label: 章
 
+++++
+<style>
+.reveal h1 { font-size: 1.8em !important; line-height: 1.2; margin-bottom: 0.5em; }
+.reveal h2 { font-size: 1.4em !important; line-height: 1.3; margin-bottom: 0.4em; }
+.reveal h3 { font-size: 1.2em !important; line-height: 1.3; margin-bottom: 0.3em; }
+.reveal .title h1 { font-size: 2.2em !important; margin-bottom: 0.5em; }
+.reveal pre code { font-size: 0.6em !important; line-height: 1.3; max-height: 500px; }
+.reveal table { font-size: 0.8em !important; }
+.reveal ul, .reveal ol { font-size: 0.9em; }
+.reveal .slide-number { font-size: 0.4em; left: 50px !important; width: 50px !important;}
+</style>
+++++
+
 == はじめに
 
 [.notes]
@@ -37,7 +50,7 @@
 * 第3章: 実装方法
 * 第4章: 結果と評価
 
-<<<
+
 
 == 第1章: 問題の背景
 
@@ -68,7 +81,7 @@
 |3.2/5.0
 |===
 
-<<<
+
 
 == 第2章: 解決策の提案
 
@@ -167,7 +180,84 @@ backend:
   - PostgreSQL
 ----
 
-<<<
+=== 実装サンプル（Java）
+
+.REST APIコントローラー
+[source,java]
+----
+@RestController
+@RequestMapping("/api/users")
+@Slf4j
+public class UserController {
+    
+    @Autowired
+    private UserService userService;
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto> getUser(@PathVariable Long id) {
+        try {
+            UserDto user = userService.findById(id);
+            return ResponseEntity.ok(user);
+        } catch (UserNotFoundException e) {
+            log.error("User not found: {}", id, e);
+            return ResponseEntity.notFound().build();
+        }
+    }
+    
+    @PostMapping
+    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest request) {
+        UserDto createdUser = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
+    }
+}
+----
+
+.サービス層の実装
+[source,java]
+----
+@Service
+@Transactional
+public class UserService {
+    
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
+    
+    @Transactional(readOnly = true)
+    public UserDto findById(Long id) {
+        User user = userRepository.findById(id)
+            .orElseThrow(() -> new UserNotFoundException("User not found: " + id));
+        
+        return UserDto.builder()
+            .id(user.getId())
+            .username(user.getUsername())
+            .email(user.getEmail())
+            .createdAt(user.getCreatedAt())
+            .build();
+    }
+    
+    public UserDto create(CreateUserRequest request) {
+        // パスワードをハッシュ化
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
+        
+        User user = User.builder()
+            .username(request.getUsername())
+            .email(request.getEmail())
+            .password(hashedPassword)
+            .build();
+            
+        User savedUser = userRepository.save(user);
+        
+        return convertToDto(savedUser);
+    }
+}
+----
+
+
 
 == 第3章: 実装方法
 
@@ -222,49 +312,141 @@ backend:
 === システム構成図
 
 .インフラストラクチャ構成
-[ditaa]
+[mermaid]
 ----
-                   +-------------+
-                   |    CDN      |
-                   | CloudFlare  |
-                   +------+------+
-                          |
-                   +------+------+
-                   | Load        |
-                   | Balancer    |
-                   +------+------+
-                          |
-              +-----------+-----------+
-              |                       |
-        +-----+-----+           +-----+-----+
-        | Web       |           | Web       |
-        | Server 1  |           | Server 2  |
-        | nginx     |           | nginx     |
-        +-----+-----+           +-----+-----+
-              |                       |
-              +-----------+-----------+
-                          |
-                   +------+------+
-                   | App Server  |
-                   | Node.js     |
-                   +------+------+
-                          |
-              +-----------+-----------+
-              |                       |
-        +-----+-----+           +-----+-----+
-        | Database  |           | Cache     |
-        | Primary   |           | Redis     |
-        | PostgreSQL|           |           |
-        +-----+-----+           +-----------+
-              |
-        +-----+-----+
-        | Database  |
-        | Replica   |
-        | Read Only |
-        +-----------+
+graph TD
+    A[CDN<br/>CloudFlare] --> B[Load Balancer]
+    
+    B --> C[Web Server 1<br/>nginx]
+    B --> D[Web Server 2<br/>nginx]
+    
+    C --> E[App Server<br/>Node.js]
+    D --> E
+    
+    E --> F[Database Primary<br/>PostgreSQL]
+    E --> G[Cache<br/>Redis]
+    
+    F --> H[Database Replica<br/>Read Only]
+    
+    style A fill:#ff9999
+    style B fill:#99ccff
+    style C fill:#99ff99
+    style D fill:#99ff99
+    style E fill:#ffcc99
+    style F fill:#cc99ff
+    style G fill:#ffff99
+    style H fill:#ccccff
 ----
 
-<<<
+=== コード例：セキュリティ実装
+
+.JWT認証の実装
+[source,java]
+----
+@Component
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    
+    private final JwtTokenProvider tokenProvider;
+    private final UserDetailsService userDetailsService;
+    
+    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, 
+                                  UserDetailsService userDetailsService) {
+        this.tokenProvider = tokenProvider;
+        this.userDetailsService = userDetailsService;
+    }
+    
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, 
+                                  HttpServletResponse response, 
+                                  FilterChain filterChain) throws ServletException, IOException {
+        
+        String token = extractTokenFromRequest(request);
+        
+        if (token != null && tokenProvider.validateToken(token)) {
+            String username = tokenProvider.getUsernameFromToken(token);
+            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            
+            UsernamePasswordAuthenticationToken authentication = 
+                new UsernamePasswordAuthenticationToken(
+                    userDetails, null, userDetails.getAuthorities());
+                    
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+        }
+        
+        filterChain.doFilter(request, response);
+    }
+    
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        return null;
+    }
+}
+----
+
+=== テストコード例
+.テストコード例
+[source,java]
+----
+@SpringBootTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Testcontainers
+class UserServiceIntegrationTest {
+    
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("testdb")
+            .withUsername("test")
+            .withPassword("test");
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Test
+    @DisplayName("ユーザー作成が正常に動作すること")
+    void shouldCreateUserSuccessfully() {
+        // Given
+        CreateUserRequest request = CreateUserRequest.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .password("password123")
+                .build();
+        
+        // When
+        UserDto result = userService.create(request);
+        
+        // Then
+        assertThat(result).isNotNull();
+        assertThat(result.getUsername()).isEqualTo("testuser");
+        assertThat(result.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.getId()).isNotNull();
+        
+        // データベースに保存されていることを確認
+        Optional<User> savedUser = userRepository.findById(result.getId());
+        assertThat(savedUser).isPresent();
+        assertThat(savedUser.get().getPassword()).isNotEqualTo("password123"); // ハッシュ化されている
+    }
+    
+    @Test
+    @DisplayName("存在しないユーザーIDで検索時に例外が発生すること")
+    void shouldThrowExceptionWhenUserNotFound() {
+        // Given
+        Long nonExistentId = 999L;
+        
+        // When & Then
+        assertThatThrownBy(() -> userService.findById(nonExistentId))
+                .isInstanceOf(UserNotFoundException.class)
+                .hasMessageContaining("User not found: 999");
+    }
+}
+----
+
+
 
 == 第4章: 結果と評価
 
@@ -336,7 +518,7 @@ backend:
 |5%
 |===
 
-<<<
+
 
 == まとめ
 
@@ -354,7 +536,7 @@ backend:
 * チーム編成
 * 開発開始
 
-<<<
+
 
 == Q&A
 
