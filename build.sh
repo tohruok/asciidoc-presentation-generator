@@ -18,6 +18,7 @@ fi
 # Generate Reveal.js slides from AsciiDoc
 echo "Generating Reveal.js slides from sample.adoc..."
 cp -p themes/*.css output
+cp -p logo.svg output
 asciidoctor -r asciidoctor-revealjs -r asciidoctor-diagram -b revealjs -a allow-uri-read sample.adoc -o output/slides.html
 
 if [ $? -eq 0 ]; then

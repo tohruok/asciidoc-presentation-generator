@@ -6,7 +6,6 @@
     "build": "./build.sh",
     "build:slides": "cp -p themes/*.css output && asciidoctor -r asciidoctor-revealjs -r asciidoctor-diagram -b revealjs -a allow-uri-read sample.adoc -o output/slides.html",
     "build:pdf": "asciidoctor-pdf -r asciidoctor-diagram -a pdf-theme=japanese -a pdf-themesdir=themes -a allow-uri-read sample.adoc -o output/handout.pdf",
-    "build:html": "asciidoctor -r asciidoctor-diagram -a allow-uri-read sample.adoc -o output/document.html",
     "dev": "npm run build:slides && echo 'Open output/slides.html in your browser'",
     "clean": "rm -rf output && mkdir -p output"
   },

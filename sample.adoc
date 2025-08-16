@@ -3,6 +3,7 @@
 :email: your.email@example.com
 :revdate: {docdate}
 :doctype: book
+:docinfo: shared
 :backend: revealjs
 :revealjsdir: https://cdn.jsdelivr.net/npm/reveal.js@5.1.0
 :revealjs_customtheme: custom.css
@@ -13,7 +14,6 @@
 :pdf-theme: japanese
 :pdf-themesdir: themes
 :chapter-label: 章
-
 
 == はじめに
 

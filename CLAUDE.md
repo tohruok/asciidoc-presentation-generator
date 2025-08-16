@@ -4,107 +4,78 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an AsciiDoc presentation generator that creates interactive Reveal.js slides, PDF handouts, and HTML documents from a single AsciiDoc source file.
+This is a Japanese-language AsciiDoc presentation generator that creates multiple output formats from a single source file:
+- Interactive Reveal.js slides with custom CSS theming
+- PDF handouts with Japanese font support (landscape A4)
+- Diagram integration (Mermaid, PlantUML, Ditaa)
 
 ## Development Commands
 
-### Slide Generation
+### Primary Build Commands
 ```bash
-# Generate all formats (slides, PDF handout, HTML document)
+# Generate all formats (recommended)
 ./build.sh
 
-# Generate only Reveal.js slides
-npm run build:slides
-
-# Quick development - generate slides and show instructions
+# Development workflow - slides only with instructions
 npm run dev
+
+# Individual formats
+npm run build:slides    # Reveal.js slides only
+npm run build:pdf       # PDF handout only
+npm run clean          # Clean output directory
 ```
 
-### Individual Format Generation
+### Manual Ruby Commands
 ```bash
-# Generate PDF handout
-npm run build:pdf
+# Direct asciidoctor commands (when npm scripts fail)
+/opt/homebrew/Cellar/ruby/3.4.5/bin/asciidoctor -r asciidoctor-revealjs -r asciidoctor-diagram -b revealjs -a allow-uri-read sample.adoc -o output/slides.html
 
-# Generate HTML document
-npm run build:html
-
-# Clean output directory
-npm run clean
+/opt/homebrew/Cellar/ruby/3.4.5/bin/asciidoctor-pdf -r asciidoctor-diagram -a pdf-theme=japanese -a pdf-themesdir=themes -a allow-uri-read sample.adoc -o output/handout.pdf
 ```
 
-### Manual Commands
+## Architecture
+
+### Build System
+- **build.sh**: Main build orchestrator with error handling and status reporting
+- **package.json**: npm wrapper scripts for convenience
+- **Path management**: Uses Homebrew Ruby (`/opt/homebrew/Cellar/ruby/3.4.5/bin`) to avoid system Ruby permission issues
+
+### Content Source
+- **sample.adoc**: Single source file containing Japanese presentation content
+- Uses Reveal.js-specific AsciiDoc syntax with fragment animations and speaker notes
+- Configured for both slide and PDF output formats via document attributes
+
+### Theming System
+- **themes/custom.css**: Reveal.js slide styling (copied to output/)
+- **themes/japanese-theme.yml**: PDF theme with Hiragino font configuration for Japanese text
+- **docinfo-footer-revealjs.html**: Custom Reveal.js footer injection
+
+### Output Management
+- **output/**: Generated files directory (gitignored)
+- CSS files copied during build for proper slide theming
+- Diagram cache handled by asciidoctor-diagram extension
+
+## Key Dependencies
+
+- **Ruby 3.4.5** (Homebrew): `/opt/homebrew/Cellar/ruby/3.4.5/bin/ruby`
+- **asciidoctor-revealjs**: Slide generation backend
+- **asciidoctor-pdf**: PDF generation with Japanese theme support
+- **asciidoctor-diagram**: Mermaid, PlantUML, Ditaa diagram support
+
+## Setup Requirements
+
 ```bash
-# Manual slide generation
-/opt/homebrew/Cellar/ruby/3.4.5/bin/asciidoctor -r asciidoctor-revealjs -b revealjs sample.adoc -o output/slides.html
-
-# Manual PDF generation
-/opt/homebrew/Cellar/ruby/3.4.5/bin/asciidoctor-pdf sample.adoc -o output/handout.pdf
-```
-
-## Dependencies
-
-- **Ruby 3.4.5** (via Homebrew): `/opt/homebrew/Cellar/ruby/3.4.5/bin/ruby`
-- **asciidoctor**: Core AsciiDoc processor
-- **asciidoctor-pdf**: PDF generation from AsciiDoc
-- **asciidoctor-revealjs**: Reveal.js slide generation from AsciiDoc
-
-## File Structure
-
-- `sample.adoc` - Presentation source file (Reveal.js format with Japanese content)
-- `build.sh` - Build script for generating slides, PDF handout, and HTML document
-- `output/` - Generated files
-  - `slides.html` - Interactive Reveal.js presentation
-  - `handout.pdf` - PDF handout version
-  - `document.html` - Standard HTML document
-- `package.json` - npm configuration with build scripts
-
-## AsciiDoc Slide Features Used
-
-- **Reveal.js backend** with `:backend: revealjs`
-- **Slide transitions** and themes
-- **Fragment animations** with `[.fragment]` and `[%step]`
-- **Speaker notes** with `[.notes]` blocks
-- **Code highlighting** with syntax highlighting
-- **Tables and lists** optimized for presentation
-- **Images and multimedia** support
-- **Styling classes** like `[.text-center]`
-
-## Setup Instructions
-
-### Prerequisites
-- Ruby 3.4.5+ (via Homebrew recommended)
-- Node.js (for Mermaid CLI)
-
-### Installation
-```bash
-# Install Ruby gems
+# Ruby gems (use Homebrew Ruby path)
 /opt/homebrew/Cellar/ruby/3.4.5/bin/gem install asciidoctor asciidoctor-pdf asciidoctor-revealjs asciidoctor-diagram asciidoctor-diagram-plantuml asciidoctor-diagram-ditaamini
 
-# Install Mermaid CLI
+# Optional: Mermaid CLI for advanced diagrams
 npm install -g @mermaid-js/mermaid-cli
 ```
 
-### Quick Start
-```bash
-# Generate all formats
-./build.sh
+## Japanese Font Configuration
 
-# Generate only slides
-npm run build:slides
-
-# Generate only PDF
-npm run build:pdf
-```
-
-## Repository Structure
-
-This is a complete AsciiDoc presentation system that generates:
-- Interactive Reveal.js slides with diagrams
-- PDF handouts with Japanese fonts
-- Standard HTML documentation
-
-All from a single `sample.adoc` source file.
-
-## Ruby Path Configuration
-
-The project uses Homebrew Ruby to avoid system Ruby permission issues. The build script automatically sets the correct PATH to use `/opt/homebrew/Cellar/ruby/3.4.5/bin/ruby`.
+The PDF output uses system Hiragino fonts configured in `themes/japanese-theme.yml`:
+- **HiraginoKakuGothic**: Primary sans-serif font
+- **HiraginoMincho**: Serif font option
+- **Landscape A4**: Optimized for handout printing
+- **Chapter breaks**: H2 headings trigger page breaks
